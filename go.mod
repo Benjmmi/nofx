@@ -10,6 +10,7 @@ require (
 )
 
 require (
+	github.com/Benjmmi/okx v0.0.0-20251031182343-a00586b307a2 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/bitly/go-simplejson v0.5.0 // indirect
 	github.com/bits-and-blooms/bitset v1.24.0 // indirect

@@ -1,3 +1,5 @@
+github.com/Benjmmi/okx v0.0.0-20251031182343-a00586b307a2 h1:QzDV2jyEr+YWNIIhBraEE29/wfTRwIkBxoiNvt9nprQ=
+github.com/Benjmmi/okx v0.0.0-20251031182343-a00586b307a2/go.mod h1:ObzMYvn2ap+ezmHU4NqH5BJ8wk+bRPL6VPnb2kDmHpI=
 github.com/StackExchange/wmi v1.2.1 h1:VIkavFPXSjcnS+O8yTq7NI32k0R5Aj+v39y29VYDOSA=
 github.com/StackExchange/wmi v1.2.1/go.mod h1:rcmrprowKIVzvc+NUiLncP2uuArMWLCbu9SBzvHz7e8=
 github.com/adshao/go-binance/v2 v2.8.7 h1:n7jkhwIHMdtd/9ZU2gTqFV15XVSbUCjyFlOUAtTd8uU=
