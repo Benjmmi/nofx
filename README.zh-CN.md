@@ -26,21 +26,16 @@
 
 ### 👥 核心团队
 
-- **Tinkle** - 技术与开发者关系负责人
-  - 负责所有技术开发和架构设计
-  - 建设开发者社区
-  - Twitter/X: [@Web3Tinkle](https://x.com/Web3Tinkle)
-
-- **Zack** - 市场与融资负责人
-  - 负责市场战略和业务拓展
-  - 管理融资和投资者关系
-  - Twitter/X: [@0x_ZackH](https://x.com/0x_ZackH)
+- **Tinkle** - [@Web3Tinkle](https://x.com/Web3Tinkle)
+- **Zack** - [@0x_ZackH](https://x.com/0x_ZackH)
 
 ### 💼 种子轮融资进行中
 
 我们正在进行**种子轮融资**。
 
-**投资咨询请联系 Zack**，通过 Twitter 私信。
+**投资咨询**，请通过 Twitter 私信联系 **Tinkle** 或 **Zack**。
+
+**商务合作**，请私信官方推特 [@nofx_ai](https://x.com/nofx_ai)。
 
 ---
 
@@ -103,11 +98,12 @@ NOFX现已支持**三大交易所**：Binance、Hyperliquid和Aster DEX！
 - 🌐 **多链支持** - 在你喜欢的EVM链上交易
 
 **快速开始：**
-1. 访问[Aster API钱包](https://www.asterdex.com/en/api-wallet)
-2. 连接你的主钱包并创建API钱包
-3. 复制API Signer地址和私钥
-4. 在config.json中设置`"exchange": "aster"`
-5. 添加`"aster_user"`、`"aster_signer"`和`"aster_private_key"`
+1. 通过[推荐链接注册Aster](https://www.asterdex.com/en/referral/fdfc0e)（享手续费优惠）
+2. 访问[Aster API钱包](https://www.asterdex.com/en/api-wallet)
+3. 连接你的主钱包并创建API钱包
+4. 复制API Signer地址和私钥
+5. 在config.json中设置`"exchange": "aster"`
+6. 添加`"aster_user"`、`"aster_signer"`和`"aster_private_key"`
 
 ---
 
@@ -536,12 +532,13 @@ cp config.json.example config.json
 - 🌐 多链支持（ETH、BSC、Polygon）
 - 🌍 无需KYC
 
-**步骤1**：创建Aster API钱包
+**步骤1**：注册并创建Aster API钱包
 
-1. 访问[Aster API钱包](https://www.asterdex.com/en/api-wallet)
-2. 连接你的主钱包（MetaMask、WalletConnect等）
-3. 点击"创建API钱包"
-4. **立即保存这3项：**
+1. 通过[推荐链接注册Aster](https://www.asterdex.com/en/referral/fdfc0e)（享手续费优惠）
+2. 访问[Aster API钱包](https://www.asterdex.com/en/api-wallet)
+3. 连接你的主钱包（MetaMask、WalletConnect等）
+4. 点击"创建API钱包"
+5. **立即保存这3项：**
    - 主钱包地址（User）
    - API钱包地址（Signer）
    - API钱包私钥（⚠️ 仅显示一次！）
