@@ -29,9 +29,19 @@ type OkxTrader struct {
 	positionsCacheTime  time.Time
 	positionsCacheMutex sync.RWMutex
 
+	// 仓位模式
+	marginType map[string]string
+
 	// 缓存有效期（15秒）
 	cacheDuration time.Duration
 }
+
+const (
+	CROSS    = "cross"    // 全仓
+	ISOLATED = "isolated" // 逐仓
+	FUTURES  = "FUTURES"  // 逐仓
+	MARKET   = "market"   // 逐仓
+)
 
 // NewOkxTrader 创建合约交易器
 func NewOkxTrader(apiKey, secretKey, passphrase string) (*OkxTrader, error) {
@@ -94,7 +104,7 @@ func (t *OkxTrader) OpenLong(symbol string, quantity float64, leverage int) (map
 	// 设置杠杆
 	resp, err := t.client.Rest.Account.SetLeverage(account2.SetLeverage{
 		InstID:  symbol,
-		MgnMode: "cross",
+		MgnMode: okx.MarginMode(t.marginType[symbol]),
 		Lever:   int64(leverage),
 	})
 
@@ -113,10 +123,10 @@ func (t *OkxTrader) OpenLong(symbol string, quantity float64, leverage int) (map
 	// 创建市价买入订单
 	orderResp, err := t.client.Rest.Trade.PlaceOrder(trade.PlaceOrder{
 		InstID:  symbol,
-		TdMode:  "cross",
+		TdMode:  okx.TradeMode(t.marginType[symbol]),
 		Side:    "buy",
 		PosSide: "long",
-		OrdType: "market",
+		OrdType: MARKET,
 		Sz:      quantity,
 	})
 
@@ -146,7 +156,7 @@ func (t *OkxTrader) OpenShort(symbol string, quantity float64, leverage int) (ma
 	// 设置杠杆
 	resp, err := t.client.Rest.Account.SetLeverage(account2.SetLeverage{
 		InstID:  symbol,
-		MgnMode: "cross",
+		MgnMode: okx.MarginMode(t.marginType[symbol]),
 		Lever:   int64(leverage),
 	})
 
@@ -165,7 +175,7 @@ func (t *OkxTrader) OpenShort(symbol string, quantity float64, leverage int) (ma
 	// 创建市价卖出订单
 	orderResp, err := t.client.Rest.Trade.PlaceOrder(trade.PlaceOrder{
 		InstID:  symbol,
-		TdMode:  "cross",
+		TdMode:  okx.TradeMode(t.marginType[symbol]),
 		Side:    "sell",
 		PosSide: "short",
 		OrdType: "market",
@@ -218,7 +228,7 @@ func (t *OkxTrader) CloseLong(symbol string, quantity float64) (map[string]inter
 	// 创建市价卖出订单（平多）
 	orderResp, err := t.client.Rest.Trade.ClosePosition(trade.ClosePosition{
 		InstID:  symbol,
-		MgnMode: "cross",
+		MgnMode: okx.MarginMode(t.marginType[symbol]),
 		PosSide: "long",
 	})
 
@@ -272,7 +282,7 @@ func (t *OkxTrader) CloseShort(symbol string, quantity float64) (map[string]inte
 	// 创建市价买入订单（平空）
 	orderResp, err := t.client.Rest.Trade.ClosePosition(trade.ClosePosition{
 		InstID:  symbol,
-		MgnMode: "cross",
+		MgnMode: okx.MarginMode(t.marginType[symbol]),
 		PosSide: "short",
 	})
 
@@ -319,7 +329,7 @@ func (t *OkxTrader) SetLeverage(symbol string, leverage int) error {
 	// 切换杠杆
 	leverageResp, err := t.client.Rest.Account.SetLeverage(account2.SetLeverage{
 		InstID:  symbol,
-		MgnMode: "cross",
+		MgnMode: okx.MarginMode(t.marginType[symbol]),
 		Lever:   int64(leverage),
 	})
 
@@ -338,14 +348,19 @@ func (t *OkxTrader) SetLeverage(symbol string, leverage int) error {
 
 // SetMarginMode 设置仓位模式
 func (t *OkxTrader) SetMarginMode(symbol string, isCrossMargin bool) error {
-	log.Printf("  ✓ OKX 仓位模式默认设置为 %s", "cross")
+	log.Printf("  ✓ OKX 仓位模式默认是否设置为全仓 %v", isCrossMargin)
+	if isCrossMargin {
+		t.marginType[symbol] = CROSS
+	} else {
+		t.marginType[symbol] = ISOLATED
+	}
 	return nil
 }
 
 // GetMarketPrice 获取市场价格
 func (t *OkxTrader) GetMarketPrice(symbol string) (float64, error) {
 	prices, err := t.client.Rest.PublicData.GetInstruments(public.GetInstruments{
-		InstType: "FUTURES",
+		InstType: FUTURES,
 		InstID:   symbol,
 	})
 	if err != nil || prices.Code != 0 {
@@ -381,7 +396,7 @@ func (t *OkxTrader) SetStopLoss(symbol string, positionSide string, quantity, st
 
 	placeOrderResp, err := t.client.Rest.Trade.PlaceOrder(trade.PlaceOrder{
 		InstID:  symbol,
-		TdMode:  "cross",
+		TdMode:  okx.TradeMode(t.marginType[symbol]),
 		Side:    side,
 		PosSide: posSide,
 		OrdType: "market",
@@ -425,7 +440,7 @@ func (t *OkxTrader) SetTakeProfit(symbol string, positionSide string, quantity, 
 
 	placeOrderResp, err := t.client.Rest.Trade.PlaceOrder(trade.PlaceOrder{
 		InstID:  symbol,
-		TdMode:  "cross",
+		TdMode:  okx.TradeMode(t.marginType[symbol]),
 		Side:    side,
 		PosSide: posSide,
 		OrdType: "market",
@@ -542,7 +557,7 @@ func (t *OkxTrader) FormatQuantity(symbol string, quantity float64) (string, err
 func (t *OkxTrader) GetSymbolPrecision(symbol string) (int, error) {
 	exchangeInfo, err := t.client.Rest.PublicData.GetInstruments(public.GetInstruments{
 		InstID:   symbol,
-		InstType: "FUTURES",
+		InstType: FUTURES,
 	})
 	if err != nil {
 		return 0, fmt.Errorf("获取交易规则失败: %w", err)
