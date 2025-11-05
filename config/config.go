@@ -128,8 +128,8 @@ func (c *Config) Validate() error {
 		if trader.Exchange == "" {
 			trader.Exchange = "binance" // 默认使用币安
 		}
-		if trader.Exchange != "binance" && trader.Exchange != "hyperliquid" && trader.Exchange != "aster" {
-			return fmt.Errorf("trader[%d]: exchange必须是 'binance', 'hyperliquid' 或 'aster'", i)
+		if trader.Exchange != "binance" && trader.Exchange != "hyperliquid" && trader.Exchange != "aster" && trader.Exchange != "okx" {
+			return fmt.Errorf("trader[%d]: exchange必须是 'binance', 'okx', 'hyperliquid' 或 'aster'", i)
 		}
 
 		// 根据平台验证对应的密钥

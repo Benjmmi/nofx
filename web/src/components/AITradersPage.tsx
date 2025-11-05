@@ -377,7 +377,7 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
     }
   };
 
-  const handleSaveExchangeConfig = async (exchangeId: string, apiKey: string, secretKey?: string, testnet?: boolean, hyperliquidWalletAddr?: string, asterUser?: string, asterSigner?: string, asterPrivateKey?: string) => {
+  const handleSaveExchangeConfig = async (exchangeId: string, apiKey: string, secretKey?: string, testnet?: boolean, hyperliquidWalletAddr?: string, asterUser?: string, asterSigner?: string, asterPrivateKey?: string, passphrase?: string) => {
     try {
       // 找到要配置的交易所（从supportedExchanges中）
       const exchangeToUpdate = supportedExchanges?.find(e => e.id === exchangeId);
@@ -392,31 +392,33 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
       
       if (existingExchange) {
         // 更新现有配置
-        updatedExchanges = allExchanges?.map(e => 
-          e.id === exchangeId ? { 
-            ...e, 
-            apiKey, 
-            secretKey, 
-            testnet, 
-            hyperliquidWalletAddr, 
-            asterUser, 
-            asterSigner, 
-            asterPrivateKey, 
-            enabled: true 
+        updatedExchanges = allExchanges?.map(e =>
+          e.id === exchangeId ? {
+            ...e,
+            apiKey,
+            secretKey,
+            testnet,
+            hyperliquidWalletAddr,
+            asterUser,
+            asterSigner,
+            asterPrivateKey,
+              passphrase,
+            enabled: true
           } : e
         ) || [];
       } else {
         // 添加新配置
-        const newExchange = { 
-          ...exchangeToUpdate, 
-          apiKey, 
-          secretKey, 
-          testnet, 
-          hyperliquidWalletAddr, 
-          asterUser, 
-          asterSigner, 
-          asterPrivateKey, 
-          enabled: true 
+        const newExchange = {
+          ...exchangeToUpdate,
+          apiKey,
+          secretKey,
+          testnet,
+          hyperliquidWalletAddr,
+          asterUser,
+          asterSigner,
+          asterPrivateKey,
+            passphrase,
+          enabled: true
         };
         updatedExchanges = [...(allExchanges || []), newExchange];
       }
@@ -433,7 +435,8 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
               hyperliquid_wallet_addr: exchange.hyperliquidWalletAddr || '',
               aster_user: exchange.asterUser || '',
               aster_signer: exchange.asterSigner || '',
-              aster_private_key: exchange.asterPrivateKey || ''
+              aster_private_key: exchange.asterPrivateKey || '',
+                passphrase: exchange.passphrase || '',
             }
           ])
         )
@@ -1152,7 +1155,7 @@ function ExchangeConfigModal({
 }: {
   allExchanges: Exchange[];
   editingExchangeId: string | null;
-  onSave: (exchangeId: string, apiKey: string, secretKey?: string, testnet?: boolean, hyperliquidWalletAddr?: string, asterUser?: string, asterSigner?: string, asterPrivateKey?: string) => Promise<void>;
+  onSave: (exchangeId: string, apiKey: string, secretKey?: string, testnet?: boolean, hyperliquidWalletAddr?: string, asterUser?: string, asterSigner?: string, asterPrivateKey?: string,passphrase?: string) => Promise<void>;
   onDelete: (exchangeId: string) => void;
   onClose: () => void;
   language: Language;
@@ -1208,7 +1211,7 @@ function ExchangeConfigModal({
       await onSave(selectedExchangeId, '', '', testnet, undefined, asterUser.trim(), asterSigner.trim(), asterPrivateKey.trim());
     } else if (selectedExchange?.id === 'okx') {
       if (!apiKey.trim() || !secretKey.trim() || !passphrase.trim()) return;
-      await onSave(selectedExchangeId, apiKey.trim(), secretKey.trim(), testnet);
+      await onSave(selectedExchangeId, apiKey.trim(), secretKey.trim(), testnet,undefined,undefined,undefined,undefined,passphrase.trim());
     } else {
       // 默认情况（其他CEX交易所）
       if (!apiKey.trim() || !secretKey.trim()) return;
@@ -1427,6 +1430,59 @@ function ExchangeConfigModal({
                 </>
               )}
 
+
+                {/* OKX */}
+                {(selectedExchange.id === 'okx') && (
+                    <>
+                        <div>
+                            <label className="block text-sm font-semibold mb-2" style={{ color: '#EAECEF' }}>
+                                {t('apiKey', language)}
+                            </label>
+                            <input
+                                type="password"
+                                value={apiKey}
+                                onChange={(e) => setApiKey(e.target.value)}
+                                placeholder={t('enterAPIKey', language)}
+                                className="w-full px-3 py-2 rounded"
+                                style={{ background: '#0B0E11', border: '1px solid #2B3139', color: '#EAECEF' }}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold mb-2" style={{ color: '#EAECEF' }}>
+                                {t('secretKey', language)}
+                            </label>
+                            <input
+                                type="password"
+                                value={secretKey}
+                                onChange={(e) => setSecretKey(e.target.value)}
+                                placeholder={t('enterSecretKey', language)}
+                                className="w-full px-3 py-2 rounded"
+                                style={{ background: '#0B0E11', border: '1px solid #2B3139', color: '#EAECEF' }}
+                                required
+                            />
+                        </div>
+
+
+                        <div>
+                            <label className="block text-sm font-semibold mb-2" style={{ color: '#EAECEF' }}>
+                                {t('passphrase', language)}
+                            </label>
+                            <input
+                                type="password"
+                                value={passphrase}
+                                onChange={(e) => setPassphrase(e.target.value)}
+                                placeholder={t('enterPassphrase', language)}
+                                className="w-full px-3 py-2 rounded"
+                                style={{ background: '#0B0E11', border: '1px solid #2B3139', color: '#EAECEF' }}
+                                required
+                            />
+                            </div>
+
+                    </>
+                )}
+
               <div>
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -1468,7 +1524,7 @@ function ExchangeConfigModal({
             <button
               type="submit"
               disabled={
-                !selectedExchange || 
+                !selectedExchange ||
                 (selectedExchange.id === 'binance' && (!apiKey.trim() || !secretKey.trim())) ||
                 (selectedExchange.id === 'okx' && (!apiKey.trim() || !secretKey.trim() || !passphrase.trim())) ||
                 (selectedExchange.id === 'hyperliquid' && (!apiKey.trim() || !hyperliquidWalletAddr.trim())) ||

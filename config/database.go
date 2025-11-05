@@ -72,6 +72,9 @@ func (d *Database) createTables() error {
 			aster_user TEXT DEFAULT '',
 			aster_signer TEXT DEFAULT '',
 			aster_private_key TEXT DEFAULT '',
+			-- okx 特定字段
+			passphrase TEXT DEFAULT '',
+			
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -188,6 +191,7 @@ func (d *Database) createTables() error {
 		`ALTER TABLE exchanges ADD COLUMN aster_user TEXT DEFAULT ''`,
 		`ALTER TABLE exchanges ADD COLUMN aster_signer TEXT DEFAULT ''`,
 		`ALTER TABLE exchanges ADD COLUMN aster_private_key TEXT DEFAULT ''`,
+		`ALTER TABLE exchanges ADD COLUMN passphrase TEXT DEFAULT ''`,
 		`ALTER TABLE traders ADD COLUMN custom_prompt TEXT DEFAULT ''`,
 		`ALTER TABLE traders ADD COLUMN override_base_prompt BOOLEAN DEFAULT 0`,
 		`ALTER TABLE traders ADD COLUMN is_cross_margin BOOLEAN DEFAULT 1`,             // 默认为全仓模式
@@ -244,6 +248,7 @@ func (d *Database) initDefaultData() error {
 		{"binance", "Binance Futures", "binance"},
 		{"hyperliquid", "Hyperliquid", "hyperliquid"},
 		{"aster", "Aster DEX", "aster"},
+		{"okx", "OKX Futures", "okx"},
 	}
 
 	for _, exchange := range exchanges {
@@ -258,17 +263,17 @@ func (d *Database) initDefaultData() error {
 
 	// 初始化系统配置 - 创建所有字段，设置默认值，后续由config.json同步更新
 	systemConfigs := map[string]string{
-		"admin_mode":            "true",                                                                                // 默认开启管理员模式，便于首次使用
-		"beta_mode":             "false",                                                                             // 默认关闭内测模式
-		"api_server_port":       "8080",                                                                                // 默认API端口
-		"use_default_coins":     "true",                                                                                // 默认使用内置币种列表
-		"default_coins":         `["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","DOGEUSDT","ADAUSDT","HYPEUSDT"]`, // 默认币种列表（JSON格式）
-		"max_daily_loss":        "10.0",                                                                                // 最大日损失百分比
-		"max_drawdown":          "20.0",                                                                                // 最大回撤百分比
-		"stop_trading_minutes":  "60",                                                                                  // 停止交易时间（分钟）
-		"btc_eth_leverage":      "5",                                                                                   // BTC/ETH杠杆倍数
-		"altcoin_leverage":      "5",                                                                                   // 山寨币杠杆倍数
-		"jwt_secret":            "",                                                                                    // JWT密钥，默认为空，由config.json或系统生成
+		"admin_mode":           "true",                                                                                // 默认开启管理员模式，便于首次使用
+		"beta_mode":            "false",                                                                               // 默认关闭内测模式
+		"api_server_port":      "8080",                                                                                // 默认API端口
+		"use_default_coins":    "true",                                                                                // 默认使用内置币种列表
+		"default_coins":        `["BTCUSDT","ETHUSDT","SOLUSDT","BNBUSDT","XRPUSDT","DOGEUSDT","ADAUSDT","HYPEUSDT"]`, // 默认币种列表（JSON格式）
+		"max_daily_loss":       "10.0",                                                                                // 最大日损失百分比
+		"max_drawdown":         "20.0",                                                                                // 最大回撤百分比
+		"stop_trading_minutes": "60",                                                                                  // 停止交易时间（分钟）
+		"btc_eth_leverage":     "5",                                                                                   // BTC/ETH杠杆倍数
+		"altcoin_leverage":     "5",                                                                                   // 山寨币杠杆倍数
+		"jwt_secret":           "",                                                                                    // JWT密钥，默认为空，由config.json或系统生成
 	}
 
 	for key, value := range systemConfigs {
@@ -404,11 +409,14 @@ type ExchangeConfig struct {
 	// Hyperliquid 特定字段
 	HyperliquidWalletAddr string `json:"hyperliquidWalletAddr"`
 	// Aster 特定字段
-	AsterUser       string    `json:"asterUser"`
-	AsterSigner     string    `json:"asterSigner"`
-	AsterPrivateKey string    `json:"asterPrivateKey"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	AsterUser       string `json:"asterUser"`
+	AsterSigner     string `json:"asterSigner"`
+	AsterPrivateKey string `json:"asterPrivateKey"`
+	// OKX 特定字段
+	Passphrase string `json:"passphrase"`
+
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // TraderRecord 交易员配置（数据库实体）
@@ -667,6 +675,7 @@ func (d *Database) GetExchanges(userID string) ([]*ExchangeConfig, error) {
 		       COALESCE(aster_user, '') as aster_user,
 		       COALESCE(aster_signer, '') as aster_signer,
 		       COALESCE(aster_private_key, '') as aster_private_key,
+		       COALESCE(passphrase, '') as passphrase,
 		       created_at, updated_at 
 		FROM exchanges WHERE user_id = ? ORDER BY id
 	`, userID)
@@ -684,6 +693,7 @@ func (d *Database) GetExchanges(userID string) ([]*ExchangeConfig, error) {
 			&exchange.Enabled, &exchange.APIKey, &exchange.SecretKey, &exchange.Testnet,
 			&exchange.HyperliquidWalletAddr, &exchange.AsterUser,
 			&exchange.AsterSigner, &exchange.AsterPrivateKey,
+			&exchange.Passphrase,
 			&exchange.CreatedAt, &exchange.UpdatedAt,
 		)
 		if err != nil {
@@ -696,15 +706,15 @@ func (d *Database) GetExchanges(userID string) ([]*ExchangeConfig, error) {
 }
 
 // UpdateExchange 更新交易所配置，如果不存在则创建用户特定配置
-func (d *Database) UpdateExchange(userID, id string, enabled bool, apiKey, secretKey string, testnet bool, hyperliquidWalletAddr, asterUser, asterSigner, asterPrivateKey string) error {
+func (d *Database) UpdateExchange(userID, id string, enabled bool, apiKey, secretKey string, testnet bool, hyperliquidWalletAddr, asterUser, asterSigner, asterPrivateKey string, passphrase string) error {
 	log.Printf("🔧 UpdateExchange: userID=%s, id=%s, enabled=%v", userID, id, enabled)
 
 	// 首先尝试更新现有的用户配置
 	result, err := d.db.Exec(`
-		UPDATE exchanges SET enabled = ?, api_key = ?, secret_key = ?, testnet = ?, 
+		UPDATE exchanges SET enabled = ?, api_key = ?, secret_key = ?, testnet = ?, passphrase = ?,
 		       hyperliquid_wallet_addr = ?, aster_user = ?, aster_signer = ?, aster_private_key = ?, updated_at = datetime('now')
 		WHERE id = ? AND user_id = ?
-	`, enabled, apiKey, secretKey, testnet, hyperliquidWalletAddr, asterUser, asterSigner, asterPrivateKey, id, userID)
+	`, enabled, apiKey, secretKey, testnet, passphrase, hyperliquidWalletAddr, asterUser, asterSigner, asterPrivateKey, id, userID)
 	if err != nil {
 		log.Printf("❌ UpdateExchange: 更新失败: %v", err)
 		return err
@@ -734,6 +744,9 @@ func (d *Database) UpdateExchange(userID, id string, enabled bool, apiKey, secre
 		} else if id == "aster" {
 			name = "Aster DEX"
 			typ = "dex"
+		} else if id == "okx" {
+			name = "OKX Futures"
+			typ = "cex"
 		} else {
 			name = id + " Exchange"
 			typ = "cex"
@@ -743,10 +756,10 @@ func (d *Database) UpdateExchange(userID, id string, enabled bool, apiKey, secre
 
 		// 创建用户特定的配置，使用原始的交易所ID
 		_, err = d.db.Exec(`
-			INSERT INTO exchanges (id, user_id, name, type, enabled, api_key, secret_key, testnet, 
+			INSERT INTO exchanges (id, user_id, name, type, enabled, api_key, secret_key, testnet, passphrase,
 			                       hyperliquid_wallet_addr, aster_user, aster_signer, aster_private_key, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-		`, id, userID, name, typ, enabled, apiKey, secretKey, testnet, hyperliquidWalletAddr, asterUser, asterSigner, asterPrivateKey)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+		`, id, userID, name, typ, enabled, apiKey, secretKey, testnet, passphrase, hyperliquidWalletAddr, asterUser, asterSigner, asterPrivateKey)
 
 		if err != nil {
 			log.Printf("❌ UpdateExchange: 创建记录失败: %v", err)
@@ -1019,7 +1032,7 @@ func (d *Database) LoadBetaCodesFromFile(filePath string) error {
 			log.Printf("插入内测码 %s 失败: %v", code, err)
 			continue
 		}
-		
+
 		if rowsAffected, _ := result.RowsAffected(); rowsAffected > 0 {
 			insertedCount++
 		}
