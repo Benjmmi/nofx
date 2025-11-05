@@ -1524,7 +1524,7 @@ function ExchangeConfigModal({
             <button
               type="submit"
               disabled={
-                !selectedExchange ||
+                !selectedExchange || 
                 (selectedExchange.id === 'binance' && (!apiKey.trim() || !secretKey.trim())) ||
                 (selectedExchange.id === 'okx' && (!apiKey.trim() || !secretKey.trim() || !passphrase.trim())) ||
                 (selectedExchange.id === 'hyperliquid' && (!apiKey.trim() || !hyperliquidWalletAddr.trim())) ||
